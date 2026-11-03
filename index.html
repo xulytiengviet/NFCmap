@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07131a">
+  <meta name="description" content="NFC × GPS Lab — mô phỏng tương tác thẻ NFC, điểm neo vị trí và kiểm soát truy cập theo vị trí trên WebGIS.">
+  <title>NFCmap · Phòng thí nghiệm NFC × GPS WebGIS</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a href="#top" class="brand" aria-label="NFC GPS Lab — đầu trang">
+        <span class="brand-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 8.5c4.5-5 9.5-5 14 0M7.8 11.3c2.9-3.2 5.7-3.2 8.5 0M10.4 14.1c1-1.1 2-1.1 3 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 16v3" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg></span>
+        <span><strong>NFC<span class="brand-accent">MAP</span></strong><small>NFC × GPS LAB</small></span>
+      </a>
+      <div class="topbar-center"><span class="live-dot"></span> PHÒNG THÍ NGHIỆM TƯƠNG TÁC <span class="topbar-version">/ v1.0</span></div>
+      <div class="top-actions">
+        <span class="chip chip-ok" id="nfcSupport" title="Tình trạng hỗ trợ Web NFC">Đang kiểm tra NFC</span>
+        <button id="downloadLogBtn" type="button" class="button button-ghost button-sm" title="Xuất báo cáo JSON">↓ <span class="hide-mobile">Xuất nhật ký</span></button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="intro">
+        <div class="eyebrow"><span class="square-dot"></span> INTERACTIVE LOCATION INTELLIGENCE <span class="eyebrow-line"></span> 01 / 03</div>
+        <div class="intro-content">
+          <div><h1>Khi một <em>điểm chạm</em><br>có tọa độ.</h1><p>NFC xác nhận <strong>vật thể đang tương tác</strong>. GPS cung cấp <strong>ngữ cảnh không gian</strong>. Khám phá ba mô hình kết hợp trong một phòng thí nghiệm WebGIS.</p></div>
+          <div class="intro-numbers" aria-label="Tóm tắt chức năng"><div><strong>03</strong><span>KỊCH BẢN</span></div><div class="vline"></div><div><strong>02</strong><span>API THIẾT BỊ</span></div><div class="vline"></div><div><strong>01</strong><span>BẢN ĐỒ</span></div></div>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <aside class="side-panel">
+          <div class="section-top"><div><span class="section-label">01 — MODULE</span><h2>Chọn kịch bản</h2></div><span class="section-badge">LIVE LAB</span></div>
+          <div class="scenario-tabs" role="tablist" aria-label="Chọn mô hình NFC GPS">
+            <button role="tab" aria-selected="true" class="scenario-tab active" id="tab-geotag" aria-controls="panel-geotag" data-scenario="geotag"><span class="tab-number">01</span><span class="tab-main"><b>GeoTag</b><small>Thẻ NFC lưu tọa độ</small></span><span class="tab-arrow">↗</span></button>
+            <button role="tab" aria-selected="false" class="scenario-tab" id="tab-anchor" aria-controls="panel-anchor" data-scenario="anchor"><span class="tab-number">02</span><span class="tab-main"><b>Position Anchor</b><small>Mốc tham chiếu không gian</small></span><span class="tab-arrow">↗</span></button>
+            <button role="tab" aria-selected="false" class="scenario-tab" id="tab-access" aria-controls="panel-access" data-scenario="access"><span class="tab-number">03</span><span class="tab-main"><b>GeoAccess</b><small>Quyền truy cập theo vị trí</small></span><span class="tab-arrow">↗</span></button>
+          </div>
+
+          <div class="panel-separator"></div>
+          <div class="section-top section-top-tight"><div><span class="section-label">02 — CONFIGURATION</span><h2>Thiết lập thử nghiệm</h2></div></div>
+
+          <section class="scenario-panel" id="panel-geotag" role="tabpanel" aria-labelledby="tab-geotag">
+            <p class="panel-help">Ghi một vị trí đã biết vào NDEF. Khi chạm thẻ, bản đồ mở đến địa điểm đã lưu.</p>
+            <label for="presetTag">Thẻ NFC mẫu</label>
+            <select id="presetTag"><option value="museum">Trạm thông tin du lịch · Demo</option><option value="park">Trạm khám phá đô thị · Demo</option><option value="checkpoint">Điểm săn kho báu · Demo</option><option value="gate">Cửa kiểm soát · Demo</option></select>
+            <label for="tagLabel">Tên địa điểm</label><input id="tagLabel" maxlength="80" value="Trạm thông tin du lịch · Demo" autocomplete="off">
+            <div class="field-grid"><div><label for="tagLat">Vĩ độ (latitude)</label><input id="tagLat" type="number" step="any" min="-90" max="90" value="10.77689"></div><div><label for="tagLon">Kinh độ (longitude)</label><input id="tagLon" type="number" step="any" min="-180" max="180" value="106.70087"></div></div>
+            <div class="actions-grid"><button class="button button-primary" type="button" id="tapTagBtn"><span>⌁</span> Chạm thẻ giả lập</button><button class="button button-soft" type="button" id="copyPayloadBtn">⧉ Sao chép NDEF</button></div>
+            <div class="output-box"><div class="output-head"><span>↳ NDEF / JSON PAYLOAD</span><span class="tiny-pill">TEXT</span></div><pre id="ndefPreview" aria-live="polite"></pre></div>
+          </section>
+
+          <section class="scenario-panel" id="panel-anchor" role="tabpanel" aria-labelledby="tab-anchor" hidden>
+            <p class="panel-help">So sánh vị trí GPS đo được với điểm neo đã khảo sát. Hiệu chỉnh chỉ là <strong>ước lượng tại ứng dụng</strong>, không thay đổi GPS của hệ điều hành.</p>
+            <div class="data-strip"><span>ĐIỂM NEO ĐÃ BIẾT</span><b id="anchorCoords">10.776890, 106.700870</b></div>
+            <label for="noiseRange">Sai lệch GPS giả lập <strong id="noiseValue">65 m</strong></label>
+            <input type="range" id="noiseRange" min="5" max="200" step="5" value="65">
+            <div class="range-captions"><span>5 m</span><span>200 m</span></div>
+            <button class="button button-soft button-full" id="generateNoiseBtn" type="button">↻ Tạo lại vị trí GPS sai lệch</button>
+            <button class="button button-primary button-full" id="correctBtn" type="button">⌁ Chạm NFC — áp mốc tham chiếu</button>
+            <div class="metric-pair"><div><small>TRƯỚC KHI CHẠM</small><strong id="beforeMetric">65.0 <i>m</i></strong></div><div><small>SAU KHI CHẠM</small><strong class="green-text" id="afterMetric">—</strong></div></div>
+            <div class="caution">Lưu ý: sai số sau khi chạm bằng 0 trong mô phỏng lý tưởng không đồng nghĩa độ chính xác thực tế tuyệt đối. Cần xét sai số khảo sát mốc và khoảng cách thiết bị–thẻ.</div>
+          </section>
+
+          <section class="scenario-panel" id="panel-access" role="tabpanel" aria-labelledby="tab-access" hidden>
+            <p class="panel-help">Kiểm tra thẻ NFC hợp lệ, khoảng cách tới mốc và độ mới của dữ liệu trước khi cấp quyền <strong>mô phỏng</strong>.</p>
+            <label for="accessTag">Tình trạng thẻ giả lập</label><select id="accessTag"><option value="valid">Hợp lệ · TAG-GATE-01</option><option value="invalid">Không hợp lệ · UNKNOWN-00</option><option value="none">Chưa chạm NFC</option></select>
+            <label for="distanceRange">Khoảng cách giả lập <strong id="distanceValue">22 m</strong></label><input type="range" id="distanceRange" min="0" max="250" step="1" value="22"><div class="range-captions"><span>0 m</span><span>250 m</span></div>
+            <label for="radiusRange">Bán kính cho phép <strong id="radiusValue">40 m</strong></label><input type="range" id="radiusRange" min="10" max="150" step="5" value="40"><div class="range-captions"><span>10 m</span><span>150 m</span></div>
+            <div class="actions-grid"><button class="button button-soft" type="button" id="accessTapBtn">⌁ Chạm thẻ giả lập</button><button class="button button-primary" type="button" id="verifyBtn">◈ Xác minh</button></div>
+            <button class="button button-text button-full" type="button" id="gateCurrentBtn">◎ Đặt điểm kiểm soát tại GPS hiện tại</button>
+            <div class="verification" id="verification"><div class="verify-symbol">?</div><div><b id="verifyTitle">Chưa xác minh</b><small id="verifyDetails">Chạm thẻ rồi chọn Xác minh.</small></div></div>
+            <ul class="checklist"><li id="checkTag">◌ Thẻ được nhận diện</li><li id="checkDistance">◌ Nằm trong phạm vi cho phép</li><li id="checkFresh">◌ Bản đọc NFC còn hiệu lực 30 giây</li></ul>
+            <div class="caution">Không điều khiển khóa thật. NFC NDEF và GPS trên máy khách có thể bị sao chép hoặc giả mạo; hệ thống thực cần xác thực mật mã, chống phát lại và kiểm tra phía máy chủ.</div>
+          </section>
+        </aside>
+
+        <section class="map-zone" aria-label="Bản đồ tương tác">
+          <div class="map-toolbar"><div class="map-title"><span class="live-dot"></span><span><strong>SPATIAL VIEWPORT</strong><small>WebGIS / Hồ Chí Minh · tọa độ demo</small></span></div><div class="map-buttons"><button class="button button-soft button-sm" type="button" id="gpsBtn">◎ Bật GPS thật</button><button class="button button-soft button-sm" type="button" id="scanBtn">⌁ Quét NFC thật</button><button class="button button-soft button-sm" type="button" id="writeBtn">↧ Ghi thẻ NFC</button></div></div>
+          <div class="map-frame">
+            <div id="map" aria-label="Bản đồ OpenStreetMap"></div>
+            <div id="fallbackMap" class="fallback-map" aria-label="Bản đồ sơ đồ dự phòng">
+              <svg viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs><pattern id="mapGrid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="#254854" stroke-width=".7"/></pattern></defs><rect width="1000" height="650" fill="#10232a"/><rect width="1000" height="650" fill="url(#mapGrid)"/><path d="M-80 180Q220 250 420 45T1050 125M-80 530Q260 400 445 510T1100 400" stroke="#1d5262" stroke-width="76" fill="none"/><path d="M-80 180Q220 250 420 45T1050 125M-80 530Q260 400 445 510T1100 400" stroke="#276274" stroke-width="2" fill="none"/><path d="M150-30L320 680M650-30L780 680M-20 310L1000 260M-50 600L950 40" stroke="#35545b" stroke-width="13" fill="none"/><path d="M150-30L320 680M650-30L780 680M-20 310L1000 260M-50 600L950 40" stroke="#687d7d" stroke-width="1.5" stroke-dasharray="5 6" fill="none"/></svg>
+              <div id="fallbackMarkers" class="fallback-markers"></div><span class="fallback-tag">SƠ ĐỒ DỰ PHÒNG · KHÔNG PHẢI BẢN ĐỒ ĐỊA LÝ</span>
+            </div>
+            <div class="map-overlay-top"><span class="map-overlay-chip"><span class="ripple-dot"></span><span id="mapMode">GEO TAG ACTIVE</span></span><span class="map-overlay-chip faded">EPSG:4326 · WGS84</span></div>
+            <div class="map-overlay-bottom"><div class="compass">N <span>↑</span></div><a id="osmLink" href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer" class="map-external">↗ Mở trên OpenStreetMap</a></div>
+          </div>
+          <div class="status-grid"><div class="status-card"><span class="status-icon">◎</span><div><small>VỊ TRÍ THIẾT BỊ</small><strong id="devicePosition">10.7774, 106.7010</strong><span id="positionSource">GPS GIẢ LẬP</span></div></div><div class="status-card"><span class="status-icon">⌁</span><div><small>NFC READER</small><strong id="readerStatus">CHẾ ĐỘ MÔ PHỎNG</strong><span id="readerDetails">Chưa quét phần cứng</span></div></div><div class="status-card"><span class="status-icon">◇</span><div><small>KHOẢNG CÁCH ĐẾN MỐC</small><strong id="currentDistance">— m</strong><span>ĐƯỜNG CHIM BAY / HAVERSINE</span></div></div></div>
+        </section>
+      </div>
+
+      <div class="bottom-layout">
+        <section class="events-card"><div class="card-heading"><div><span class="section-label">03 — EVENT STREAM</span><h2>Nhật ký phiên</h2></div><button id="clearLogBtn" class="button button-ghost button-sm" type="button">Xóa nhật ký</button></div><div id="events" class="events" role="log" aria-live="polite" aria-relevant="additions"></div></section>
+        <section class="docs-card"><div><span class="section-label">04 — SYSTEM NOTE</span><h2>Hai nguồn dữ liệu. Một ngữ cảnh.</h2></div><div class="pipeline"><span>NFC / NDEF</span><b>+</b><span>GPS / WGS84</span><b>→</b><span>RULE ENGINE</span></div><p><strong>GPS</strong> ước lượng vị trí thiết bị; <strong>NFC</strong> phát hiện thẻ đặt gần đầu đọc. Việc ghép hai nguồn dữ liệu được thực hiện ở lớp ứng dụng.</p><p class="muted">Trang hoạt động ở chế độ giả lập trên máy tính. Dùng Chrome Android có NFC và mở bằng HTTPS để thử đọc/ghi NDEF thật. Dữ liệu và nhật ký chỉ lưu trong bộ nhớ của trang cho đến khi bạn xuất báo cáo.</p><div class="doc-links"><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_NFC_API" target="_blank" rel="noopener noreferrer">Tài liệu Web NFC ↗</a><a href="https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API" target="_blank" rel="noopener noreferrer">Tài liệu Geolocation ↗</a></div></section>
+      </div>
+      <footer><div>GEOCONTEXT LAB <span>/</span> NFC + GPS <span>/</span> BẢN MÔ PHỎNG KỸ THUẬT</div><div>CHẠY TRÊN GITHUB PAGES · NO BACKEND</div></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script defer src="./app.js"></script>
+</body>
+</html>
